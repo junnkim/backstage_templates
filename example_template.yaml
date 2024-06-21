@@ -1,17 +1,13 @@
-### EXAMPLE TEMPLATE FROM BACKSTAGE DOCS ###
-
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
-# some metadata about the template itself
 metadata:
-  name: v1beta3-demo
-  title: Test Action template
-  description: scaffolder v1beta3 template demo
+  name: pull-request
+  title: Pull Request Action template
+  description: scaffolder v1beta3 template demo publishing to PR on existing git repository
 spec:
   owner: backstage/techdocs-core
   type: service
 
-  # these are the steps which are rendered in the frontend with the form input
   parameters:
     - title: Fill in some steps
       required:
@@ -21,9 +17,16 @@ spec:
           title: Name
           type: string
           description: Unique name of the component
+          ui:field: EntityNamePicker
           ui:autofocus: true
-          ui:options:
-            rows: 5
+        description:
+          title: Description
+          type: string
+          description: Description of the component
+        targetPath:
+          title: Target Path in repo
+          type: string
+          description: Name of the directory to create in the repository
     - title: Choose a location
       required:
         - repoUrl
@@ -36,7 +39,6 @@ spec:
             allowedHosts:
               - github.com
 
-  # here's the steps that are executed in series in the scaffolder backend
   steps:
     - id: fetch-base
       name: Fetch Base
@@ -44,7 +46,7 @@ spec:
       input:
         url: ./template
         values:
-          name: ${{ parameters.name }}
+          name: ${{parameters.name}}
 
     - id: fetch-docs
       name: Fetch Docs
@@ -55,15 +57,18 @@ spec:
 
     - id: publish
       name: Publish
-      action: publish:github
+      action: publish:github:pull-request
       input:
-        allowedHosts: ['github.com']
-        description: This is ${{ parameters.name }}
         repoUrl: ${{ parameters.repoUrl }}
+        title: "Create new project: ${{parameters.name}}"
+        branchName: create-${{parameters.name}}
+        description: |
+          # New project: ${{parameters.name}}
 
-    - id: register
-      name: Register
-      action: catalog:register
-      input:
-        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
-        catalogInfoPath: '/catalog-info.yaml'
+          ${{ parameters.description if parameters.description }}
+        targetPath: ${{ parameters.targetPath if parameters.targetPath else parameters.name }}
+
+  output:
+    links:
+      - url: ${{steps.publish.output.remoteUrl}}
+        title: "Go to PR"
