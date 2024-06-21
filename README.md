@@ -1,1 +1,1 @@
-# backstage_templates
+A collection of software templates for Backstage 
